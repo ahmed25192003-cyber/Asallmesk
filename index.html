@@ -359,13 +359,12 @@
         <i id="toast-icon" class="fa-solid fa-circle-check text-amber-400 text-base"></i>
         <span id="toast-message">تمت العملية بنجاح</span>
     </div>
+<!-- FIREBASE COMPAT SDK (متوافق 100% مع WebView) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-    <!-- FIREBASE MODULE & INTEGRATION -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         const appId = 'mesk-honey-store-v2';
         const firebaseConfig = {
             apiKey: "AIzaSyDn20GtJQzE6caC9Wx_w4COO7UwJesCaBs",
@@ -377,8 +376,6 @@
             appId: "1:487947506217:web:2a20a166921c55620a0238",
             measurementId: "G-50MFSXL6BF"
         };
-
-        let app, db, auth, currentUser = null;
 
         const DEFAULT_PRODUCTS = [
             {
@@ -439,7 +436,7 @@
         ];
 
         window.state = {
-            products: [],
+            products: JSON.parse(localStorage.getItem('mesk_products_v2') || 'null') || DEFAULT_PRODUCTS,
             cart: [],
             whatsappNumber: "201025479220",
             bannerText: "🚚 توصيل سريع لكافة المحافظات | عسل أصلي مفحوص معملياً 100%",
@@ -448,113 +445,8 @@
             searchQuery: ""
         };
 
-        async function initApp() {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+        const CATEGORIES = ["الكل", "عسل سدر", "عسل موالح", "عسل حبة البركة", "خلطات ملكية", "عروض خاصة"];
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                currentUser = auth.currentUser;
-                setupRealtimeListeners();
-            } catch (e) {
-                console.warn("Firebase running in offline fallback mode:", e);
-                loadLocalFallback();
-            }
-
-            initSplashScreenProgress();
-            renderCategories();
-            renderProducts();
-            renderCart();
-        }
-
-        function getProductsCollectionRef() {
-            return collection(db, 'artifacts', appId, 'public', 'data', 'products');
-        }
-        function getSettingsDocRef() {
-            return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
-        }
-
-        function setupRealtimeListeners() {
-            if (!db) return;
-
-            onSnapshot(getProductsCollectionRef(), (snapshot) => {
-                if (!snapshot.empty) {
-                    window.state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
-                } else {
-                    seedInitialFirebaseData();
-                }
-                renderProducts();
-            }, (error) => {
-                console.error("Products Snapshot Error:", error);
-                loadLocalFallback();
-            });
-
-            onSnapshot(getSettingsDocRef(), (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.whatsappNumber) window.state.whatsappNumber = data.whatsappNumber;
-                    if (data.bannerText) window.state.bannerText = data.bannerText;
-                    if (data.splashImageUrl !== undefined) window.state.splashImageUrl = data.splashImageUrl;
-                    applyStoreConfigUI();
-                }
-            }, (error) => {
-                console.error("Settings Snapshot Error:", error);
-            });
-        }
-
-        async function seedInitialFirebaseData() {
-            try {
-                for (const p of DEFAULT_PRODUCTS) {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', p.id), p);
-                }
-                await setDoc(getSettingsDocRef(), {
-                    whatsappNumber: "201025479220",
-                    bannerText: "🚚 توصيل سريع لكافة المحافظات | عسل أصلي مفحوص معملياً 100%",
-                    splashImageUrl: ""
-                }, { merge: true });
-            } catch (e) {
-                console.error("Error seeding initial data:", e);
-            }
-        }
-
-        function loadLocalFallback() {
-            const saved = localStorage.getItem('mesk_products_v2');
-            window.state.products = saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
-            const savedWa = localStorage.getItem('mesk_wa_v2');
-            if (savedWa) window.state.whatsappNumber = savedWa;
-            renderProducts();
-        }
-
-        function applyStoreConfigUI() {
-            const bannerEl = document.getElementById('announcement-text-display');
-            if (bannerEl) bannerEl.textContent = window.state.bannerText;
-
-            const splashImg = document.getElementById('splash-custom-image');
-            const splashDefault = document.getElementById('splash-default-logo');
-            if (window.state.splashImageUrl) {
-                if (splashImg) {
-                    splashImg.src = window.state.splashImageUrl;
-                    splashImg.classList.remove('hidden');
-                }
-                if (splashDefault) splashDefault.classList.add('hidden');
-            } else {
-                if (splashImg) splashImg.classList.add('hidden');
-                if (splashDefault) splashDefault.classList.remove('hidden');
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', initApp);
-    </script>
-
-    <!-- APP UI LOGIC -->
-    <script>
         function initSplashScreenProgress() {
             const bar = document.getElementById('splash-progress-bar');
             let width = 0;
@@ -563,21 +455,19 @@
                     clearInterval(interval);
                     setTimeout(hideSplashScreen, 300);
                 } else {
-                    width += 8;
+                    width += 15;
                     if (bar) bar.style.width = width + '%';
                 }
-            }, 60);
+            }, 50);
         }
 
         function hideSplashScreen() {
             const splash = document.getElementById('splash-screen');
             if (splash) {
                 splash.style.opacity = '0';
-                setTimeout(() => splash.style.display = 'none', 700);
+                setTimeout(() => splash.style.display = 'none', 500);
             }
         }
-
-        const CATEGORIES = ["الكل", "عسل سدر", "عسل موالح", "عسل حبة البركة", "خلطات ملكية", "عروض خاصة"];
 
         function renderCategories() {
             const container = document.getElementById('category-pills');
@@ -713,11 +603,9 @@
         function addToCart(productId) {
             const prod = window.state.products.find(p => p.id === productId);
             if (!prod) return;
-
             const existing = window.state.cart.find(i => i.id === productId);
             if (existing) existing.qty += 1;
             else window.state.cart.push({ ...prod, qty: 1 });
-
             renderCart();
             showToast(`تم إضافة "${prod.title}" للسلة`);
         }
@@ -734,7 +622,6 @@
             const container = document.getElementById('cart-items-container');
             const countBadge = document.getElementById('cart-badge-count');
             const totalEl = document.getElementById('cart-total-price');
-
             if (!container) return;
 
             const totalItems = window.state.cart.reduce((sum, i) => sum + i.qty, 0);
@@ -744,12 +631,7 @@
             if (totalEl) totalEl.textContent = `${totalPrice} ج.م`;
 
             if (window.state.cart.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16 space-y-3">
-                        <i class="fa-solid fa-basket-shopping text-5xl text-amber-500/20"></i>
-                        <p class="text-sm text-gray-400">سلة المشتريات فارغة حالياً</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="text-center py-16 space-y-3"><i class="fa-solid fa-basket-shopping text-5xl text-amber-500/20"></i><p class="text-sm text-gray-400">سلة المشتريات فارغة حالياً</p></div>`;
                 return;
             }
 
@@ -770,45 +652,17 @@
         }
 
         function submitOrderToWhatsApp() {
-            if (window.state.cart.length === 0) {
-                showToast('السلة فارغة!', 'error');
-                return;
-            }
-
+            if (window.state.cart.length === 0) { showToast('السلة فارغة!', 'error'); return; }
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
             const address = document.getElementById('cust-address').value.trim();
             const notes = document.getElementById('cust-notes').value.trim();
-
-            if (!name || !phone || !address) {
-                showToast('يرجى ملء كافة البيانات المطلوبة للشحن', 'error');
-                return;
-            }
+            if (!name || !phone || !address) { showToast('يرجى ملء كافة البيانات المطلوبة للشحن', 'error'); return; }
 
             const totalPrice = window.state.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-            const itemsText = window.state.cart.map((i, idx) => 
-                `${idx + 1}. *${i.title}* (${i.weight}) - الكمية: ${i.qty} = ${i.price * i.qty} ج.م`
-            ).join('\n');
-
-            const message = 
-`👑 *طلب جديد من متجر عسل مسك* 👑
-----------------------------------
-👤 *بيانات العميل:*
-• *الاسم:* ${name}
-• *الهاتف:* ${phone}
-• *العنوان:* ${address}
-${notes ? `• *ملاحظات:* ${notes}\n` : ''}
-----------------------------------
-🍯 *الطلبات:*
-${itemsText}
-
-----------------------------------
-💰 *الإجمالي النهائي:* *${totalPrice} ج.م*
-----------------------------------
-برعاية د. سامح جاب الله (عسل مسك)`;
-
-            const url = `https://wa.me/${window.state.whatsappNumber}?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
+            const itemsText = window.state.cart.map((i, idx) => `${idx + 1}. *${i.title}* (${i.weight}) - الكمية: ${i.qty} = ${i.price * i.qty} ج.م`).join('\n');
+            const message = `👑 *طلب جديد من متجر عسل مسك* 👑\n----------------------------------\n👤 *بيانات العميل:*\n• *الاسم:* ${name}\n• *الهاتف:* ${phone}\n• *العنوان:* ${address}\n${notes ? `• *ملاحظات:* ${notes}\n` : ''}----------------------------------\n🍯 *الطلبات:*\n${itemsText}\n\n----------------------------------\n💰 *الإجمالي النهائي:* *${totalPrice} ج.م*\n----------------------------------\nبرعاية د. سامح جاب الله (عسل مسك)`;
+            window.open(`https://wa.me/${window.state.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
         function directWhatsAppOrder(productId) {
@@ -823,7 +677,7 @@ ${itemsText}
             window.open(`https://wa.me/${window.state.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function showToast(msg, type = 'success') {
+        function showToast(msg) {
             const toast = document.getElementById('toast-notification');
             const toastMsg = document.getElementById('toast-message');
             if (!toast) return;
@@ -831,6 +685,59 @@ ${itemsText}
             toast.classList.remove('hidden');
             toast.classList.add('flex');
             setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function applyStoreConfigUI() {
+            const bannerEl = document.getElementById('announcement-text-display');
+            if (bannerEl) bannerEl.textContent = window.state.bannerText;
+
+            const splashImg = document.getElementById('splash-custom-image');
+            const splashDefault = document.getElementById('splash-default-logo');
+            if (window.state.splashImageUrl) {
+                if (splashImg) { splashImg.src = window.state.splashImageUrl; splashImg.classList.remove('hidden'); }
+                if (splashDefault) splashDefault.classList.add('hidden');
+            } else {
+                if (splashImg) splashImg.classList.add('hidden');
+                if (splashDefault) splashDefault.classList.remove('hidden');
+            }
+        }
+
+        // تشغيل الواجهة فوراً عند تحميل الصفحة
+        initSplashScreenProgress();
+        renderCategories();
+        renderProducts();
+        renderCart();
+
+        // الاتصال بـ Firebase لتحديث المنتجات لحظياً من السحابة
+        try {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                const db = firebase.firestore();
+                
+                firebase.auth().signInAnonymously().catch(function(e) { console.log("Auth note:", e); });
+
+                db.collection('artifacts').doc(appId).collection('public').doc('data').collection('products')
+                  .onSnapshot(function(snapshot) {
+                      if (!snapshot.empty) {
+                          window.state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                          localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
+                          renderProducts();
+                      }
+                  });
+
+                db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('config')
+                  .onSnapshot(function(docSnap) {
+                      if (docSnap.exists) {
+                          const data = docSnap.data();
+                          if (data.whatsappNumber) window.state.whatsappNumber = data.whatsappNumber;
+                          if (data.bannerText) window.state.bannerText = data.bannerText;
+                          if (data.splashImageUrl !== undefined) window.state.splashImageUrl = data.splashImageUrl;
+                          applyStoreConfigUI();
+                      }
+                  });
+            }
+        } catch (err) {
+            console.log("Firebase compat init warning:", err);
         }
     </script>
 </body>
