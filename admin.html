@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لوحة تحكم عسل مسك - الإدارة</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Cairo & Amiri -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        royal: {
+                            bg: '#070709',
+                            card: '#121319',
+                            border: '#2a2416',
+                            gold: '#d4af37',
+                            goldLight: '#f3e5ab',
+                            goldDark: '#997a15',
+                            amber: '#d97706',
+                            emerald: '#059669',
+                            crimson: '#dc2626'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        amiri: ['Amiri', 'serif']
+                    },
+                    boxShadow: {
+                        'gold-glow': '0 0 25px -5px rgba(212, 175, 55, 0.35)',
+                        'gold-glow-lg': '0 0 45px 0px rgba(212, 175, 55, 0.5)',
+                        'card-depth': '0 10px 30px -10px rgba(0,0,0,0.85)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #070709;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- ADMIN LOGIN LOCK -->
+    <div id="admin-lock-screen" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-royal-card border border-amber-500/40 rounded-3xl p-6 text-center space-y-4 shadow-gold-glow-lg">
+            <div class="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 text-2xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="text-xl font-bold font-amiri text-white">دخول لوحة تحكم عسل مسك</h2>
+            <p class="text-xs text-amber-200/60">أدخل كلمة المرور للوصول إلى إدارة المنتجات والإعدادات السحابية</p>
+            <input type="password" id="admin-pass-input" placeholder="كلمة المرور (الافتراضية: 1234)"
+                   onkeydown="if(event.key==='Enter') verifyAdminPassword()"
+                   class="w-full bg-black/80 text-center text-sm text-white border border-amber-500/40 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+            <button type="button" onclick="verifyAdminPassword()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-extrabold shadow-gold-glow">
+                دخول اللوحة
+            </button>
+        </div>
+    </div>
+
+    <!-- ADMIN APP CONTAINER -->
+    <div id="admin-app-container" class="hidden flex-1 flex-col justify-between w-full min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
+
+        <!-- Admin Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-amber-950/70 via-black to-amber-950/50 border border-amber-500/30 mb-8 shadow-card-depth">
+            <div>
+                <div class="inline-flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    متصل بمشروع Firebase: asalmesk
+                </div>
+                <h1 class="text-2xl font-bold font-amiri text-white">لوحة تحكم عسل مسك</h1>
+                <p class="text-xs text-amber-200/60">إضافة وتعديل وحذف المنتجات وتحديث إعدادات المتجر لحظياً</p>
+            </div>
+            <button type="button" onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 text-xs font-bold hover:bg-red-900/50">
+                <i class="fa-solid fa-right-from-bracket ml-1"></i> تسجيل خروج
+            </button>
+        </div>
+
+        <!-- Dashboard Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="p-4 rounded-2xl bg-royal-card border border-amber-500/20 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-boxes-stacked text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] text-amber-200/60 block">إجمالي المنتجات</span>
+                    <strong id="stat-total-products" class="text-xl font-extrabold text-white">0</strong>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-royal-card border border-amber-500/20 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-fire text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] text-amber-200/60 block">عروض نشطة</span>
+                    <strong id="stat-active-offers" class="text-xl font-extrabold text-amber-400">0</strong>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-royal-card border border-amber-500/20 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <i class="fa-solid fa-sparkles text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] text-amber-200/60 block">منتجات جديدة</span>
+                    <strong id="stat-new-products" class="text-xl font-extrabold text-emerald-400">0</strong>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-royal-card border border-amber-500/20 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <i class="fa-solid fa-percent text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] text-amber-200/60 block">خصومات</span>
+                    <strong id="stat-discount-products" class="text-xl font-extrabold text-red-400">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Sections -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Product Form & Table -->
+            <div class="lg:col-span-2 space-y-8">
+
+                <!-- Product Editor -->
+                <div class="p-6 rounded-2xl bg-royal-card border border-amber-500/20 shadow-xl">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-amber-500/10">
+                        <h3 id="admin-form-title" class="text-lg font-bold font-amiri text-amber-300 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus"></i>
+                            <span>إضافة منتج جديد للمتجر</span>
+                        </h3>
+                        <button type="button" id="cancel-edit-btn" onclick="resetAdminForm()" class="hidden text-xs text-amber-200/60 hover:text-white underline">
+                            إلغاء التعديل
+                        </button>
+                    </div>
+
+                    <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-4">
+                        <input type="hidden" id="admin-prod-id" value="">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-amber-200/80 mb-1">اسم المنتج *</label>
+                                <input type="text" id="admin-prod-title" required placeholder="مثال: عسل سدر جبلي فاخر"
+                                       class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-amber-200/80 mb-1">التصنيف / القسم *</label>
+                                <select id="admin-prod-category" required class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                                    <option value="عسل سدر">عسل سدر</option>
+                                    <option value="عسل موالح">عسل موالح</option>
+                                    <option value="عسل حبة البركة">عسل حبة البركة</option>
+                                    <option value="خلطات ملكية">خلطات ملكية</option>
+                                    <option value="عروض خاصة">عروض خاصة</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-amber-200/80 mb-1">السعر (ج.م) *</label>
+                                <input type="number" id="admin-prod-price" required min="1" placeholder="850"
+                                       class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-amber-200/80 mb-1">السعر السابق (اختياري)</label>
+                                <input type="number" id="admin-prod-oldprice" min="0" placeholder="1000"
+                                       class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-amber-200/80 mb-1">الوزن / الحجم *</label>
+                                <input type="text" id="admin-prod-weight" required placeholder="1 كجم / 500 جم"
+                                       class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                            </div>
+                        </div>
+
+                        <!-- Badge Selection -->
+                        <div class="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 space-y-2">
+                            <label class="block text-xs font-bold text-amber-300">
+                                <i class="fa-solid fa-certificate text-amber-400 mr-1"></i>
+                                الشارة العلوية للمنتج (Badge):
+                            </label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <label class="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-amber-500/20 cursor-pointer text-xs">
+                                    <input type="radio" name="admin-badge" value="" checked class="accent-amber-500">
+                                    <span>بدون شارة</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-amber-500/20 cursor-pointer text-xs">
+                                    <input type="radio" name="admin-badge" value="عرض" class="accent-amber-500">
+                                    <span class="text-amber-400 font-bold">عرض</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-emerald-500/20 cursor-pointer text-xs">
+                                    <input type="radio" name="admin-badge" value="جديد" class="accent-emerald-500">
+                                    <span class="text-emerald-400 font-bold">جديد</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-red-500/20 cursor-pointer text-xs">
+                                    <input type="radio" name="admin-badge" value="خصم" class="accent-red-500">
+                                    <span class="text-red-400 font-bold">خصم</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Image URL / Phone Upload / Presets -->
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-200/80 mb-1">صورة المنتج</label>
+                            <div class="space-y-2">
+                                <input type="text" id="admin-prod-image" placeholder="رابط صورة مباشر (URL) أو اختر من الهاتف"
+                                       class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+
+                                <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                                    <label class="px-2.5 py-1 rounded bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/50 border border-emerald-500/30 whitespace-nowrap cursor-pointer font-semibold">
+                                        <i class="fa-solid fa-mobile-screen ml-1"></i> من الهاتف
+                                        <input type="file" accept="image/*" onchange="handleProductFileUpload(event)" class="hidden">
+                                    </label>
+                                    <span class="text-amber-200/50 whitespace-nowrap">صور جاهزة:</span>
+                                    <button type="button" onclick="setPresetImage('https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=500&q=80')" class="px-2 py-1 rounded bg-amber-950/40 text-amber-300 hover:bg-amber-800/40 border border-amber-500/20 whitespace-nowrap">عسل سدر</button>
+                                    <button type="button" onclick="setPresetImage('https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80')" class="px-2 py-1 rounded bg-amber-950/40 text-amber-300 hover:bg-amber-800/40 border border-amber-500/20 whitespace-nowrap">شمع عسل</button>
+                                    <button type="button" onclick="setPresetImage('https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=500&q=80')" class="px-2 py-1 rounded bg-amber-950/40 text-amber-300 hover:bg-amber-800/40 border border-amber-500/20 whitespace-nowrap">برطمان ملكي</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-200/80 mb-1">الوصف والمميزات *</label>
+                            <textarea id="admin-prod-desc" rows="3" required placeholder="وصف فاخر للمنتج والمنافع الصحية..."
+                                      class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-sm hover:brightness-110 shadow-gold-glow transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span id="admin-submit-btn-text">حفظ ونشر سحابياً في المتجر فوراً</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Products Table -->
+                <div class="p-6 rounded-2xl bg-royal-card border border-amber-500/20 shadow-xl overflow-hidden">
+                    <h3 class="text-lg font-bold font-amiri text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-amber-400"></i>
+                        <span>المنتجات الحالية في السحابة</span>
+                    </h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead>
+                                <tr class="border-b border-amber-500/20 text-amber-300/70 bg-black/40">
+                                    <th class="p-3">المنتج</th>
+                                    <th class="p-3">التصنيف</th>
+                                    <th class="p-3">السعر</th>
+                                    <th class="p-3">الشارة</th>
+                                    <th class="p-3 text-center">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-products-tbody" class="divide-y divide-amber-500/10">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Settings -->
+            <div class="space-y-8">
+
+                <!-- WhatsApp Settings -->
+                <div class="p-6 rounded-2xl bg-royal-card border border-amber-500/20 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold font-amiri text-amber-300 flex items-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+                        <span>رقم واستقبال الطلبات</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-200/80 mb-1">رقم الواتساب (مع كود الدولة)</label>
+                        <input type="text" id="setting-whatsapp-num" placeholder="201025479220"
+                               class="w-full bg-black/60 text-xs text-white font-mono border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-amber-200/80 mb-1">نص الشريط الإعلاني العلوي</label>
+                        <input type="text" id="setting-banner-text" placeholder="🚚 توصيل سريع لكافة المحافظات..."
+                               class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <button type="button" onclick="saveStoreSettings()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all">
+                        حفظ الإعدادات سحابياً
+                    </button>
+                </div>
+
+                <!-- Splash Image Settings -->
+                <div class="p-6 rounded-2xl bg-royal-card border border-amber-500/20 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold font-amiri text-amber-300 flex items-center gap-2">
+                        <i class="fa-solid fa-image text-amber-400"></i>
+                        <span>صورة شاشة البداية (Splash Screen)</span>
+                    </h3>
+                    <div>
+                        <input type="text" id="setting-splash-url" placeholder="رابط صورة الهوية..."
+                               class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="flex-1 py-2 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs text-center cursor-pointer hover:bg-amber-900/50">
+                            <span><i class="fa-solid fa-upload ml-1"></i> رفع صورة</span>
+                            <input type="file" accept="image/*" onchange="handleSplashFileUpload(event)" class="hidden">
+                        </label>
+                    </div>
+                    <button type="button" onclick="saveSplashSetting()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-yellow-400 text-black font-extrabold text-xs">
+                        تطبيق وتعميم الصورة
+                    </button>
+                </div>
+
+                <!-- Security -->
+                <div class="p-6 rounded-2xl bg-royal-card border border-amber-500/20 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold font-amiri text-amber-300 flex items-center gap-2">
+                        <i class="fa-solid fa-key text-yellow-400"></i>
+                        <span>كلمة مرور اللوحة</span>
+                    </h3>
+                    <input type="password" id="setting-new-pass" placeholder="كلمة المرور الجديدة..."
+                           class="w-full bg-black/60 text-xs text-white border border-amber-500/30 rounded-xl p-3 focus:outline-none focus:border-amber-400">
+                    <button type="button" onclick="changeAdminPassword()" class="w-full py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-amber-300 border border-amber-500/20 text-xs font-semibold">
+                        تحديث كلمة السر
+                    </button>
+                </div>
+
+                <!-- Reset Data -->
+                <div class="p-4 rounded-xl bg-red-950/20 border border-red-500/20 text-center">
+                    <button type="button" onclick="resetToDefaultData()" class="text-xs text-red-400 hover:text-red-300 underline font-semibold">
+                        <i class="fa-solid fa-rotate-right ml-1"></i> إعادة رفع المنتجات والبيانات الافتراضية للسحابة
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] hidden bg-gradient-to-r from-amber-950 via-black to-amber-950 text-amber-300 border border-amber-500/40 px-5 py-3 rounded-2xl shadow-gold-glow text-xs font-bold items-center gap-2">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-amber-400 text-base"></i>
+        <span id="toast-message">تمت العملية بنجاح</span>
+    </div>
+
+    <!-- ADMIN UI LOGIC (تعمل فوراً بدون انتظار Firebase) -->
+    <script>
+        const DEFAULT_PRODUCTS = [
+            {
+                id: "p1",
+                title: "عسل سدر جبلي ملكي فاخر",
+                category: "عسل سدر",
+                price: 850,
+                oldPrice: 1000,
+                weight: "1 كجم",
+                badge: "خصم",
+                image: "https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=500&q=80",
+                description: "أجود أنواع عسل السدر الجبلي النقي، مستخرج من مناحل خاصة تحت إشراف د. سامح جاب الله، ممتاز لتقوية المناعة والصحة العامة."
+            },
+            {
+                id: "p2",
+                title: "عسل حبة البركة الأصلي النقية",
+                category: "عسل حبة البركة",
+                price: 420,
+                oldPrice: null,
+                weight: "1 كجم",
+                badge: "جديد",
+                image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80",
+                description: "عسل طازج غني بفوائد حبة البركة السوداء للوقاية والنشاط اليومي."
+            },
+            {
+                id: "p3",
+                title: "باقة التوفير الملكية (3 برطمانات)",
+                category: "عروض خاصة",
+                price: 1250,
+                oldPrice: 1500,
+                weight: "3 × 1 كجم",
+                badge: "عرض",
+                image: "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=500&q=80",
+                description: "عرض التوفير الخاص: 1 كجم سدر + 1 كجم موالح + 1 كجم حبة البركة بسعر استثنائي."
+            },
+            {
+                id: "p4",
+                title: "عسل موالح طبيعي نقي",
+                category: "عسل موالح",
+                price: 320,
+                oldPrice: 380,
+                weight: "1 كجم",
+                badge: "عرض",
+                image: "https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=500&q=80",
+                description: "عسل خفيف نقي من زهور الموالح والبرتقال والليمون، غني بفيتايمن سي."
+            },
+            {
+                id: "p5",
+                title: "خلطة المكسرات الفاخرة والغذاء الملكي",
+                category: "خلطات ملكية",
+                price: 490,
+                oldPrice: null,
+                weight: "500 جم",
+                badge: "جديد",
+                image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80",
+                description: "عسل سدر مع مكسرات طازجة، غذاء ملكات النحل، وحبوب اللقاح."
+            }
+        ];
+
+        window.state = {
+            products: JSON.parse(localStorage.getItem('mesk_products_v2') || 'null') || DEFAULT_PRODUCTS,
+            whatsappNumber: "201025479220",
+            bannerText: "🚚 توصيل سريع لكافة المحافظات | عسل أصلي مفحوص معملياً 100%",
+            splashImageUrl: "",
+            adminPassword: "1234"
+        };
+
+        function unlockAdminUI() {
+            const lock = document.getElementById('admin-lock-screen');
+            const container = document.getElementById('admin-app-container');
+            if (lock) lock.style.display = 'none';
+            if (container) {
+                container.classList.remove('hidden');
+                container.classList.add('flex');
+            }
+            renderAdminProductsTable();
+            updateStats();
+            fillSettingsInputs();
+        }
+
+        function verifyAdminPassword() {
+            const input = document.getElementById('admin-pass-input');
+            const pass = input ? input.value.trim() : '';
+            if (pass === String(window.state.adminPassword)) {
+                sessionStorage.setItem('mesk_admin_authed', 'true');
+                unlockAdminUI();
+                showToast('تم فتح لوحة التحكم بنجاح');
+            } else {
+                showToast('كلمة المرور غير صحيحة (الافتراضية: 1234)', 'error');
+            }
+        }
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('mesk_admin_authed');
+            location.reload();
+        }
+
+        function fillSettingsInputs() {
+            const waInput = document.getElementById('setting-whatsapp-num');
+            if (waInput) waInput.value = window.state.whatsappNumber;
+
+            const bannerInput = document.getElementById('setting-banner-text');
+            if (bannerInput) bannerInput.value = window.state.bannerText;
+
+            const splashInput = document.getElementById('setting-splash-url');
+            if (splashInput) splashInput.value = window.state.splashImageUrl;
+        }
+
+        function handleProductFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 600;
+                    const scale = img.width > maxWidth ? (maxWidth / img.width) : 1;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('admin-prod-image').value = compressedDataUrl;
+                    showToast('تم تجهيز صورة المنتج من الهاتف بنجاح');
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleProductSubmit(e) {
+            e.preventDefault();
+
+            const idInput = document.getElementById('admin-prod-id').value;
+            const title = document.getElementById('admin-prod-title').value.trim();
+            const category = document.getElementById('admin-prod-category').value;
+            const price = parseFloat(document.getElementById('admin-prod-price').value);
+            const oldPriceVal = document.getElementById('admin-prod-oldprice').value;
+            const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : null;
+            const weight = document.getElementById('admin-prod-weight').value.trim();
+            const desc = document.getElementById('admin-prod-desc').value.trim();
+            let image = document.getElementById('admin-prod-image').value.trim();
+
+            if (!image) image = "https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=500&q=80";
+
+            let badge = '';
+            const badgeRadios = document.getElementsByName('admin-badge');
+            for (const r of badgeRadios) { if (r.checked) { badge = r.value; break; } }
+
+            const prodId = idInput || ('p_' + Date.now());
+            const productData = { id: prodId, title, category, price, oldPrice, weight, badge, image, description: desc };
+
+            const idx = window.state.products.findIndex(p => p.id === productData.id);
+            if (idx !== -1) window.state.products[idx] = productData;
+            else window.state.products.unshift(productData);
+            localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
+
+            renderAdminProductsTable();
+            updateStats();
+
+            if (typeof window.syncProductToCloud === 'function') {
+                window.syncProductToCloud(productData);
+            }
+
+            showToast('تم النشر بنجاح وحفظه بالسحابة');
+            resetAdminForm();
+        }
+
+        function editProductInAdmin(id) {
+            const p = window.state.products.find(i => i.id === id);
+            if (!p) return;
+
+            document.getElementById('admin-prod-id').value = p.id;
+            document.getElementById('admin-prod-title').value = p.title;
+            document.getElementById('admin-prod-category').value = p.category;
+            document.getElementById('admin-prod-price').value = p.price;
+            document.getElementById('admin-prod-oldprice').value = p.oldPrice || '';
+            document.getElementById('admin-prod-weight').value = p.weight;
+            document.getElementById('admin-prod-desc').value = p.description;
+            document.getElementById('admin-prod-image').value = p.image;
+
+            const badgeRadios = document.getElementsByName('admin-badge');
+            for (const r of badgeRadios) { r.checked = (r.value === (p.badge || '')); }
+
+            document.getElementById('admin-form-title').innerHTML = `<i class="fa-solid fa-pen"></i> <span>تعديل المنتج (${p.title})</span>`;
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+
+        function deleteProductInAdmin(id) {
+            if (confirm('هل أنت متأكد من حذف المنتج سحابياً؟')) {
+                window.state.products = window.state.products.filter(p => p.id !== id);
+                localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
+                renderAdminProductsTable();
+                updateStats();
+
+                if (typeof window.removeProductFromCloud === 'function') {
+                    window.removeProductFromCloud(id);
+                }
+                showToast('تم الحذف من السحابة والمتجر');
+            }
+        }
+
+        function resetAdminForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('admin-prod-id').value = '';
+            document.getElementById('admin-form-title').innerHTML = `<i class="fa-solid fa-circle-plus"></i> <span>إضافة منتج جديد للمتجر</span>`;
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+        }
+
+        function setPresetImage(url) {
+            document.getElementById('admin-prod-image').value = url;
+        }
+
+        function renderAdminProductsTable() {
+            const tbody = document.getElementById('admin-products-tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = window.state.products.map(p => `
+                <tr class="hover:bg-amber-500/5 transition-all">
+                    <td class="p-3 font-semibold text-white flex items-center gap-2">
+                        <img src="${p.image}" class="w-8 h-8 rounded object-cover border border-amber-500/30">
+                        <span class="line-clamp-1">${p.title}</span>
+                    </td>
+                    <td class="p-3 text-amber-200/70">${p.category}</td>
+                    <td class="p-3 font-bold text-amber-400">${p.price} ج.م</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/30">${p.badge || 'بدون'}</span></td>
+                    <td class="p-3 text-center space-x-1 space-x-reverse">
+                        <button type="button" onclick="editProductInAdmin('${p.id}')" class="p-1.5 rounded bg-amber-500/20 text-amber-300"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" onclick="deleteProductInAdmin('${p.id}')" class="p-1.5 rounded bg-red-500/20 text-red-400"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total-products').textContent = window.state.products.length;
+            document.getElementById('stat-active-offers').textContent = window.state.products.filter(p => p.badge === 'عرض').length;
+            document.getElementById('stat-new-products').textContent = window.state.products.filter(p => p.badge === 'جديد').length;
+            document.getElementById('stat-discount-products').textContent = window.state.products.filter(p => p.badge === 'خصم').length;
+        }
+
+        function saveStoreSettings() {
+            const wa = document.getElementById('setting-whatsapp-num').value.trim();
+            const banner = document.getElementById('setting-banner-text').value.trim();
+            if (wa) window.state.whatsappNumber = wa;
+            if (banner) window.state.bannerText = banner;
+
+            if (typeof window.syncSettingsToCloud === 'function') {
+                window.syncSettingsToCloud({ whatsappNumber: window.state.whatsappNumber, bannerText: window.state.bannerText });
+            }
+            showToast('تم حفظ إعدادات المتجر سحابياً');
+        }
+
+        function saveSplashSetting() {
+            const url = document.getElementById('setting-splash-url').value.trim();
+            window.state.splashImageUrl = url;
+            if (typeof window.syncSettingsToCloud === 'function') {
+                window.syncSettingsToCloud({ splashImageUrl: url });
+            }
+            showToast('تم حفظ صورة شاشة البداية');
+        }
+
+        function handleSplashFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    window.state.splashImageUrl = evt.target.result;
+                    document.getElementById('setting-splash-url').value = evt.target.result;
+                    if (typeof window.syncSettingsToCloud === 'function') {
+                        window.syncSettingsToCloud({ splashImageUrl: evt.target.result });
+                    }
+                    showToast('تم رفع صورة شاشة البداية');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function changeAdminPassword() {
+            const newPass = document.getElementById('setting-new-pass').value.trim();
+            if (newPass) {
+                window.state.adminPassword = newPass;
+                if (typeof window.syncSettingsToCloud === 'function') {
+                    window.syncSettingsToCloud({ adminPassword: newPass });
+                }
+                document.getElementById('setting-new-pass').value = '';
+                showToast('تم تحديث كلمة مرور اللوحة سحابياً');
+            }
+        }
+
+        function resetToDefaultData() {
+            if (!confirm('هل أنت متأكد من إعادة ضبط المنتجات والإعدادات الافتراضية؟')) return;
+            window.state.products = [...DEFAULT_PRODUCTS];
+            localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
+            renderAdminProductsTable();
+            updateStats();
+            if (typeof window.resetCloudData === 'function') {
+                window.resetCloudData();
+            }
+            showToast('تمت إعادة الضبط الافتراضية');
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            if (!toast) return;
+            toastMsg.textContent = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (sessionStorage.getItem('mesk_admin_authed') === 'true') {
+                unlockAdminUI();
+            }
+        });
+    </script>
+
+    <!-- FIREBASE CLOUD SYNC MODULE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = 'mesk-honey-store-v2';
+        const firebaseConfig = {
+            apiKey: "AIzaSyDn20GtJQzE6caC9Wx_w4COO7UwJesCaBs",
+            authDomain: "asalmesk.firebaseapp.com",
+            databaseURL: "https://asalmesk-default-rtdb.firebaseio.com",
+            projectId: "asalmesk",
+            storageBucket: "asalmesk.firebasestorage.app",
+            messagingSenderId: "487947506217",
+            appId: "1:487947506217:web:2a20a166921c55620a0238",
+            measurementId: "G-50MFSXL6BF"
+        };
+
+        let db = null;
+
+        function getProductsCollectionRef() {
+            return collection(db, 'artifacts', appId, 'public', 'data', 'products');
+        }
+        function getSettingsDocRef() {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+        }
+
+        async function seedInitialFirebaseData() {
+            if (!db || !window.DEFAULT_PRODUCTS) return;
+            for (const p of window.DEFAULT_PRODUCTS) {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', p.id), p);
+            }
+            await setDoc(getSettingsDocRef(), {
+                whatsappNumber: "201025479220",
+                bannerText: "🚚 توصيل سريع لكافة المحافظات | عسل أصلي مفحوص معملياً 100%",
+                splashImageUrl: "",
+                adminPassword: "1234"
+            }, { merge: true });
+        }
+
+        window.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
+
+        window.syncProductToCloud = async function(productData) {
+            if (!db) return;
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productData.id), productData);
+            } catch (e) {
+                console.error("Cloud sync product error:", e);
+            }
+        };
+
+        window.removeProductFromCloud = async function(productId) {
+            if (!db) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', productId));
+            } catch (e) {
+                console.error("Cloud delete error:", e);
+            }
+        };
+
+        window.syncSettingsToCloud = async function(settingsObj) {
+            if (!db) return;
+            try {
+                await setDoc(getSettingsDocRef(), settingsObj, { merge: true });
+            } catch (e) {
+                console.error("Cloud settings error:", e);
+            }
+        };
+
+        window.resetCloudData = async function() {
+            if (!db) return;
+            try {
+                const snap = await getDocs(getProductsCollectionRef());
+                for (const d of snap.docs) {
+                    await deleteDoc(d.ref);
+                }
+                await seedInitialFirebaseData();
+            } catch (e) {
+                console.error("Cloud reset error:", e);
+            }
+        };
+
+        (async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onSnapshot(getProductsCollectionRef(), (snapshot) => {
+                    if (!snapshot.empty) {
+                        window.state.products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        localStorage.setItem('mesk_products_v2', JSON.stringify(window.state.products));
+                        renderAdminProductsTable();
+                        updateStats();
+                    }
+                });
+
+                onSnapshot(getSettingsDocRef(), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.whatsappNumber) window.state.whatsappNumber = data.whatsappNumber;
+                        if (data.bannerText) window.state.bannerText = data.bannerText;
+                        if (data.splashImageUrl !== undefined) window.state.splashImageUrl = data.splashImageUrl;
+                        if (data.adminPassword) window.state.adminPassword = data.adminPassword;
+                        fillSettingsInputs();
+                    }
+                });
+            } catch (e) {
+                console.warn("Firebase background sync unavailable:", e);
+            }
+        })();
+    </script>
+</body>
+</html>
