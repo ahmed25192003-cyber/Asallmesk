@@ -436,7 +436,7 @@
         ];
 
         window.state = {
-            products: DEFAULT_PRODUCTS,
+            products: JSON.parse(localStorage.getItem('mesk_products_v2') || 'null') || DEFAULT_PRODUCTS,
             cart: [],
             whatsappNumber: "201025479220",
             bannerText: "🚚 توصيل سريع لكافة المحافظات | عسل أصلي مفحوص معملياً 100%",
